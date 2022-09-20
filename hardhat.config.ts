@@ -44,7 +44,7 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
-    only: [":Greeter$"],
+    only: [":StakingCloneRewarder$"],
   },
   defaultNetwork: "hardhat",
   etherscan: {
@@ -117,7 +117,17 @@ const config: HardhatUserConfig = {
     ),
   },
   solidity: {
-    version: "0.8.11",
+    compilers: [
+      {
+        version: "0.5.17",
+      },
+      {
+        version: "0.8.7",
+      },
+      {
+        version: "0.6.12",
+      }
+    ],
     settings: {
       optimizer: {
         enabled: true,
