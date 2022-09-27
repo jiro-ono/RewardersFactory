@@ -1,68 +1,61 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-import "../interfaces/IMasterContract.sol";
+pragma solidity 0.6.12;
 
-// solhint-disable no-inline-assembly
+// ----------------------------------------------------------------------------
+// CloneFactory.sol
+// From
+// https://github.com/optionality/clone-factory/blob/32782f82dfc5a00d103a7e61a17a5dedbd1e8e9d/contracts/CloneFactory.sol
+// ----------------------------------------------------------------------------
 
-contract BoringFactory {
-    event LogDeploy(address indexed masterContract, bytes data, address indexed cloneAddress);
+/*
+The MIT License (MIT)
+Copyright (c) 2018 Murray Software, LLC.
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+//solhint-disable max-line-length
+//solhint-disable no-inline-assembly
 
-    /// @notice Mapping from clone contracts to their masterContract.
-    mapping(address => address) public masterContractOf;
+contract CloneFactory {
 
-    /// @notice Mapping from masterContract to an array of all clones
-    /// On mainnet events can be used to get this list, but events aren't always easy to retrieve and
-    /// barely work on sidechains. While this adds gas, it makes enumerating all clones much easier.
-    mapping(address => address[]) public clonesOf;
-
-    /// @notice Returns the count of clones that exists for a specific masterContract
-    /// @param masterContract The address of the master contract.
-    /// @return cloneCount total number of clones for the masterContract.
-    function clonesOfCount(address masterContract) public view returns (uint256 cloneCount) {
-        cloneCount = clonesOf[masterContract].length;
+  function createClone(address target) internal returns (address result) {
+    bytes20 targetBytes = bytes20(target);
+    assembly {
+      let clone := mload(0x40)
+      mstore(clone, 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000000000000000000000)
+      mstore(add(clone, 0x14), targetBytes)
+      mstore(add(clone, 0x28), 0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000)
+      result := create(0, clone, 0x37)
     }
+  }
 
-    /// @notice Deploys a given master Contract as a clone.
-    /// Any ETH transferred with this call is forwarded to the new clone.
-    /// Emits `LogDeploy`.
-    /// @param masterContract The address of the contract to clone.
-    /// @param data Additional abi encoded calldata that is passed to the new clone via `IMasterContract.init`.
-    /// @param useCreate2 Creates the clone by using the CREATE2 opcode, in this case `data` will be used as salt.
-    /// @return cloneAddress Address of the created clone contract.
-    function deploy(
-        address masterContract,
-        bytes calldata data,
-        bool useCreate2
-    ) public payable returns (address cloneAddress) {
-        require(masterContract != address(0), "BoringFactory: No masterContract");
-        bytes20 targetBytes = bytes20(masterContract); // Takes the first 20 bytes of the masterContract's address
+  function isClone(address target, address query) internal view returns (bool result) {
+    bytes20 targetBytes = bytes20(target);
+    assembly {
+      let clone := mload(0x40)
+      mstore(clone, 0x363d3d373d3d3d363d7300000000000000000000000000000000000000000000)
+      mstore(add(clone, 0xa), targetBytes)
+      mstore(add(clone, 0x1e), 0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000)
 
-        if (useCreate2) {
-            // each masterContract has different code already. So clones are distinguished by their data only.
-            bytes32 salt = keccak256(data);
-
-            // Creates clone, more info here: https://blog.openzeppelin.com/deep-dive-into-the-minimal-proxy-contract/
-            assembly {
-                let clone := mload(0x40)
-                mstore(clone, 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000000000000000000000)
-                mstore(add(clone, 0x14), targetBytes)
-                mstore(add(clone, 0x28), 0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000)
-                cloneAddress := create2(0, clone, 0x37, salt)
-            }
-        } else {
-            assembly {
-                let clone := mload(0x40)
-                mstore(clone, 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000000000000000000000)
-                mstore(add(clone, 0x14), targetBytes)
-                mstore(add(clone, 0x28), 0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000)
-                cloneAddress := create(0, clone, 0x37)
-            }
-        }
-        masterContractOf[cloneAddress] = masterContract;
-        clonesOf[masterContract].push(cloneAddress);
-
-        IMasterContract(cloneAddress).init{value: msg.value}(data);
-
-        emit LogDeploy(masterContract, data, cloneAddress);
+      let other := add(clone, 0x40)
+      extcodecopy(query, other, 0, 0x2d)
+      result := and(
+        eq(mload(clone), mload(other)),
+        eq(mload(add(clone, 0xd)), mload(add(other, 0xd)))
+      )
     }
+  }
 }

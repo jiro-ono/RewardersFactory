@@ -113,7 +113,6 @@ describe("Integration Tests", function () {
 
         // init reward manager
         const rewards_manager = await RewardsManager.deploy();
-        rewards_manager.init(rewardToken.address, rewards_manager.address, "0x4bb4c1B0745ef7B4642fEECcd0740deC417ca0a0");
         
         // init rewarder
         const test_rewarder = await StakingCloneRewarder.deploy(
@@ -125,6 +124,7 @@ describe("Integration Tests", function () {
             2592000
         );
         
+        rewards_manager.init(rewardToken.address, test_rewarder.address, "0x4bb4c1B0745ef7B4642fEECcd0740deC417ca0a0");
 
         // check rewarder is setup
         expect(await test_rewarder.rewardToken()).to.equal(rewardToken.address);

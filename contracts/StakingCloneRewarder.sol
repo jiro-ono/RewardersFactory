@@ -35,7 +35,7 @@ contract StakingCloneRewarder is StakingRewards, IRewarder {
     //address public constant MASTERCHEF_V2 = 0xEF0881eC094552b2e128Cf945EF17a6752B4Ec5d;
     
     address public MASTERCHEF;
-    address public rewarder_factory;
+
     constructor(
         address _masterchef,
         address _owner,
@@ -47,9 +47,19 @@ contract StakingCloneRewarder is StakingRewards, IRewarder {
         public
         StakingRewards(_owner, _rewardsDistribution, _rewardsToken, _stakingToken, _rewardsDuration)
     {
-        rewarder_factory = msg.sender;
         MASTERCHEF = _masterchef;
     }
+
+    constructor (address _MASTERCHEF_V2) public {
+        MASTERCHEF = _MASTERCHEF;
+    }
+
+    function init(bytes calldata data) public payable {
+        require(rewardsToken == IERC20(0), "already initialized");
+        (_owner, _rewardsDistribution, _rewardsToken, _stakingToken, _rewardsDuration) = abi.decode(data, (address, address, address, address, uint256));
+        setup(_owner, _rewardsDistribution, _rewardsToken, _stakingToken, _rewardsDuration);
+    }
+
 
     /// @notice Implements abstract methods from StakingRewards contract
     /// and returns total amount of staked tokens in the pool.

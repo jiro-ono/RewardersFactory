@@ -21,16 +21,21 @@ contract RewardsManager {
         owner = _to;
     }
 
-    function init(address _rewardToken, address _rewardContract, address _owner) public payable {
+    function init(address _rewardToken, address _owner) public payable {
         require(rewardToken == address(0), "Rewards Manager: already initialized");
        //(rewardToken, rewardContract, owner) = abi.encode(data, (ERC20, address, address));
         rewardToken = _rewardToken;
-        rewardsContract = _rewardContract;
         owner = _owner;
         require(rewardToken != address(0), "Rewards Manager: bad token");
     }
 
-    function setRewardsContract(address _rewardsContract) external {
+    function initRewardContract(address _rewardContract) public {
+        require(rewardsContract == address(0), "rewards manager already initialized");
+        rewardsContract = _rewardContract;
+    }
+
+
+    /*function setRewardsContract(address _rewardsContract) external {
         require(msg.sender == owner, "not permitted");
         rewardsContract = _rewardsContract;
     }
@@ -38,7 +43,7 @@ contract RewardsManager {
     function setRewardToken(address _rewardToken) external {
         require(msg.sender == owner, "not permitted");
         rewardToken = _rewardToken;
-    }
+    }*/
 
     function _periodFinish() internal view returns (uint256) {
         return StakingRewards(rewardsContract).periodFinish();

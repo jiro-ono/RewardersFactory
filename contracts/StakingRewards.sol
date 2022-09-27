@@ -463,7 +463,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(
+    setup(
         address _owner,
         address _rewardsDistribution,
         address _rewardsToken,
